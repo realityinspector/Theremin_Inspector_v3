@@ -1,12 +1,22 @@
 Theremin Inspector v3
 =====================
 
+THIS IS A WORK IN PROGRESS. THE INSTRUCTIONS BELOW ARE A TARGET TO HIT, NOT NECCESSARILY THE CURRRENT STATUS. ALTHOUGH ANY CURRENT COMMITS SHOULD COMPILE SO THAT EVERYONE CAN SEE WHAT'S UP.
+
+
 04/29/2012
 ==========
 
 This is an OpenFrameworks Application Designed to run with OF 007, and the following addons:
 
 (Note: Alex is currently running Mac OS 10.7.3 and Xcode 4.3.1)
+
+A NOTE REGARDING THE THEREMIN
+=============================
+
+In our installation, we used a Moog Etherwave theremin because we needed to buy a theremin the same-day in Manhattan and the Guitar Center only carried one brand.  We expect that any model of theremin will work. 
+
+The authors of this software have no relationship to, or rights related to: the Moog Music company, the Moog family or The Bob Moog Foundation.   At their request, we make the requirement as part of our open license that the word "Moog" may not be associated with this software in any way, whatsoever, especially in marketing collateral. 
 
 ==================
 INSTALL PROCEDURE:
