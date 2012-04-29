@@ -1,0 +1,59 @@
+Theremin Inspector v3
+=====================
+
+04/29/2012
+==========
+
+This is an OpenFrameworks Application Designed to run with OF 007, and the following addons:
+
+(Note: Alex is currently running Mac OS 10.7.3 and Xcode 4.3.1)
+
+==================
+INSTALL PROCEDURE:
+==================
+
+1) Make sure you have the addons listed below (ofxOpenNI, and ofxARToolkitPlus).
+2) Create a "Theremin_Inspector_v3" or "Reality_Inspectors_Apps" Folder inside of your OF_007/apps/ folder.
+3) Clone the master from inside that 
+
+git clone https://alexhornbake@github.com/alexhornbake/Theremin_Inspector_v3.git
+cd ofxOpenNI
+git checkout master
+
+4) Print out the file /bin/data/Theremin_Inspector_v3_Markers.png
+5) Attach these markers to the back of your theremin, they should be 36 cm apart.
+6) If you don't have a theremin, put them on a cardboard box and pretend.
+7) Basic setup diagram
+
+ User + Theremin        _Kinect +_
+  0       !             |Display|
+`-|-'     L             |_______|
+ / \      |
+ 
+          |-----1.8m-------|
+          
+ The User stand at the Theremin which is roughly 1m off the floor. The user is facing a 42" or large flatscreen display that has a Kinect mouted above it. The Minimum distance between the center of the theremin and the front of the Kinect camera lens is 1.8m (~6ft).
+ 
+8) Press "c" to calibrate the installation, and follow the on screen instructions.
+
+===============
+REQUIRED ADDONS:
+===============
+
+ofxOpenNI 
+---------
+- You'll need a Microsoft Kinect.
+- https://github.com/gameoverhack/ofxOpenNI.git 
+- using master branch from 09/01/2012
+- OpenNI 1.5.2.7 unstable, NITE 1.5.2.7 , SensorKinect (Avin) 5.1.0.25) for Mac portable dylibs.
+- follow the install procedure in the readme.
+
+ofxARtoolkitPlus
+----------------
+- https://github.com/karldd/ofxARToolkitPlus.git
+- using master branch from 3/14/2012
+- Follow the install procedure in the readme.
+
+ofxOpenCV
+---------
+- Version 2.2 as provided with OF 007.
