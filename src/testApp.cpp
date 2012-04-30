@@ -1,6 +1,19 @@
 #include "testApp.h"
 
+//Globals
+//----------------------------------
 
+//E Field Quality/Efficiency
+extern const float intensPas = 5; // Distance between segments
+extern const float dMin2 = 10;// Last Mile Drawing close to Charges
+extern const float numFieldIterations = 1000; // How many cycles do we draw for
+
+//E Field Line Style
+extern const float lineWeight = 9;
+extern const float fieldScale = 3;
+float touchedDist = 150;
+bool lineTouched = false;
+ofColor lineColor;
 
 //--------------------------------------------------------------
 void testApp::setup() {
@@ -9,13 +22,14 @@ void testApp::setup() {
 	height = 480;
     
 	isLive			= true;
-	isTracking		= false;
+	isTracking		= true;
 	isTrackingHands	= true;
 	isFiltering		= false;
 	isRecording		= false;
 	isCloud			= false;
 	isCPBkgnd		= true;
 	isMasking		= true;
+    isCalibrating   = false;
 
 	nearThreshold = 500;
 	farThreshold  = 1000;
@@ -27,16 +41,6 @@ void testApp::setup() {
     colorImage.allocate(width, height);
 	grayImage.allocate(width, height);
 	grayThres.allocate(width, height);
-	
-	// Load the image we are going to distort
-	displayImage.loadImage("of.jpg");
-	// Load the corners of the image into the vector
-	int displayImageHalfWidth = displayImage.width / 2;
-	int displayImageHalfHeight = displayImage.height / 2;	
-	displayImageCorners.push_back(ofPoint(0, 0));
-	displayImageCorners.push_back(ofPoint(displayImage.width, 0));
-	displayImageCorners.push_back(ofPoint(displayImage.width, displayImage.height));
-	displayImageCorners.push_back(ofPoint(0, displayImage.height));	
 	
 	// This uses the default camera calibration and marker file
 	artk.setup(width, height);
@@ -53,8 +57,48 @@ void testApp::setup() {
 	// Set the threshold
 	// ARTK+ does the thresholding for us
 	// We also do it in OpenCV so we can see what it looks like for debugging
-	threshold = 85;
+	threshold = 70;
 	artk.setThreshold(threshold);
+    
+    
+    //SETUP EFIELD AND CHARGES
+	//------------------------
+	dbFlag = false;
+	cCote = 4;
+	rotY = 0.0;
+	incRotY = 0.01;
+	distZ = 100;
+	
+	//set Line Color to be WHITE
+	lineColor.r=255;
+	lineColor.g=255;
+	lineColor.b=255;
+	lineColor.a=255;
+	
+	
+	//Setup Charges on Theremin
+	charge[0].set(-100.0,0.0,0.0,1000.0);
+	charge[1].set(-100.0,0.0,0.0,1000.0);
+    
+	tempInc = 100;
+	tempX = -30;
+	tempY = -180;
+	tempZ = 60;
+	scale = 4;
+	
+	//volume
+	charge[2].set(300,200,0,-1000);
+	charge[3].set(320,250,0,-1000.0);
+	//pitch
+	charge[4].set(340,200,0,-1000.0);
+	charge[5].set(360,200,0,-1000.0);
+	//ground
+	charge[6].set(0,-1000,0,400.0);
+	
+	for (int i = 0; i < nbPLignes; i++)
+	{
+		pLigne[i].set(ofRandom(0,640),ofRandom(0,480),(ofRandom(0,0)),1);
+	}
     
 	ofBackground(0, 0, 0);
 
@@ -78,10 +122,6 @@ void testApp::setupRecording(string _filename) {
 	recordUser.setUseCloudPoints(isCloud);
 	recordUser.setMaxNumberOfUsers(2);					// use this to set dynamic max number of users (NB: that a hard upper limit is defined by MAX_NUMBER_USERS in ofxUserGenerator)
 
-	recordHandTracker.setup(&recordContext, 4);
-	recordHandTracker.setSmoothing(filterFactor);		// built in openni hand track smoothing...
-	recordHandTracker.setFilterFactors(filterFactor);	// custom smoothing/filtering (can also set per hand with setFilterFactor)...set them all to 0.1f to begin with
-
 	recordContext.toggleRegisterViewport();
 	recordContext.toggleMirror();
 
@@ -92,23 +132,6 @@ void testApp::setupRecording(string _filename) {
 }
 
 void testApp::setupPlayback(string _filename) {
-
-	playContext.shutdown();
-	playContext.setupUsingRecording(ofToDataPath(_filename));
-	playDepth.setup(&playContext);
-	playImage.setup(&playContext);
-
-	playUser.setup(&playContext);
-	playUser.setSmoothing(filterFactor);				// built in openni skeleton smoothing...
-	playUser.setUseMaskPixels(isMasking);
-	playUser.setUseCloudPoints(isCloud);
-
-	playHandTracker.setup(&playContext, 4);
-	playHandTracker.setSmoothing(filterFactor);			// built in openni hand track smoothing...
-	playHandTracker.setFilterFactors(filterFactor);		// custom smoothing/filtering (can also set per hand with setFilterFactor)...set them all to 0.1f to begin with
-
-	playContext.toggleRegisterViewport();
-	playContext.toggleMirror();
 
 }
 
@@ -131,7 +154,10 @@ void testApp::update(){
 									 recordDepth.getWidth(), recordDepth.getHeight(), OF_IMAGE_GRAYSCALE);
 
 		// update tracking/recording nodes
-		if (isTracking) recordUser.update();
+		if (isTracking) {
+            recordUser.update();
+            
+        }
 		if (isRecording) oniRecorder.update();
 
 		// demo getting pixels from user gen
@@ -156,27 +182,8 @@ void testApp::update(){
 		// Pass in the new image pixels to artk
 		artk.update(grayImage.getPixels());
 
-	} else {
-
-		// update all nodes
-		playContext.update();
-		playDepth.update();
-		playImage.update();
-
-		// demo getting depth pixels directly from depth gen
-		depthRangeMask.setFromPixels(playDepth.getDepthPixels(nearThreshold, farThreshold),
-									 playDepth.getWidth(), playDepth.getHeight(), OF_IMAGE_GRAYSCALE);
-
-		// update tracking/recording nodes
-		if (isTracking) playUser.update();
-
-		// demo getting pixels from user gen
-		if (isTracking && isMasking) {
-			allUserMasks.setFromPixels(playUser.getUserPixels(), playUser.getWidth(), playUser.getHeight(), OF_IMAGE_GRAYSCALE);
-			user1Mask.setFromPixels(playUser.getUserPixels(1), playUser.getWidth(), playUser.getHeight(), OF_IMAGE_GRAYSCALE);
-			user2Mask.setFromPixels(playUser.getUserPixels(2), playUser.getWidth(), playUser.getHeight(), OF_IMAGE_GRAYSCALE);
-		}
-	}
+	} 
+	
 }
 
 //--------------------------------------------------------------
@@ -184,13 +191,10 @@ void testApp::draw(){
 
 	ofSetColor(255, 255, 255);
 
-	//glPushMatrix();
-	//glScalef(0.75, 0.75, 0.75);
-
 	if (isLive) {
         
-		recordDepth.draw(0,0,640,480);
-		recordImage.draw(640, 0, 640, 480);
+		//recordDepth.draw(0,0,640,480);
+		recordImage.draw(0, 0, 640, 480);
 
 		depthRangeMask.draw(0, 480, 320, 240);	// can use this with openCV to make masks, find contours etc when not dealing with openNI 'User' like objects
 
@@ -199,74 +203,129 @@ void testApp::draw(){
 
 			if (isMasking) drawMasks();
 			if (isCloud) drawPointCloud(&recordUser, 1);	// 0 gives you all point clouds; use userID to see point clouds for specific users
-
+            
+            for(int i = 0; i < recordUser.getNumberOfTrackedUsers() ; i++){  
+                ofxTrackedUser* tracked = recordUser.getTrackedUser(i+1);
+                
+                if( recordUser.getXnUserGenerator().GetSkeletonCap().IsTracking(tracked->id)){  
+                    if(tracked->left_lower_arm.found){
+                        
+                        ofSetHexColor(0xffffff);
+                        
+                        ofDrawBitmapString(ofToString(tracked->left_lower_arm.position[1].X),650,10);
+                        ofDrawBitmapString(ofToString(tracked->left_lower_arm.position[1].Y),750,10);
+                        ofDrawBitmapString(ofToString(tracked->left_lower_arm.position[1].Z),850,10);
+                        
+                        //Put Charges in your hands
+                        charge[0].set(tracked->left_lower_arm.position[1].X,tracked->left_lower_arm.position[1].Y,0,1500);
+                        
+                        ofSetHexColor(0xffff77);
+                        
+                        ofCircle(tracked->left_lower_arm.position[1].X,tracked->left_lower_arm.position[1].Y,10);
+                    }
+                    if(tracked->right_lower_arm.found){
+                        
+                        ofSetHexColor(0xffffff);
+                        
+                        ofDrawBitmapString(ofToString(tracked->right_lower_arm.position[1].X),650,30);
+                        ofDrawBitmapString(ofToString(tracked->right_lower_arm.position[1].Y),750,30);
+                        ofDrawBitmapString(ofToString(tracked->right_lower_arm.position[1].Z),850,30);
+                        
+                        //Put Charges in your hands
+                        charge[1].set(tracked->right_lower_arm.position[1].X,tracked->right_lower_arm.position[1].Y,0,1500);
+                        
+                        ofSetHexColor(0xffff77);
+                        
+                        ofCircle(tracked->right_lower_arm.position[1].X,tracked->right_lower_arm.position[1].Y,10);
+                    }
+                }
+                
+                //Draw Field Lines
+                for(int i = 0; i < nbPLignes; i++)
+                {
+                   // if ((charge[0].distance(pLigne[i]) < touchedDist) || (charge[1].distance(pLigne[i]) < touchedDist))
+                    {
+                        lineTouched = true;
+                        //set Line Color to be PINK
+                        lineColor.r=198;
+                        lineColor.g=199;
+                        lineColor.b=0;
+                        lineColor.a=(charge[0].distance(pLigne[i])/100.0)*25;
+                        pLigne[i].champ(charge,nbCharges);
+                    }
+                    
+                    pLigne[i].champ(charge,nbCharges);
+                    lineTouched=false;
+                    //set Line Color to be WHITE
+                    lineColor.r=255;
+                    lineColor.g=255;
+                    lineColor.b=255;
+                    lineColor.a=255;
+                }
+                
+            }
 		}
-		if (isTrackingHands)
-			recordHandTracker.drawHands();
         
-        // Main image
+//**********************************************************************
+//    Theremin Position Calibration
+//
+//    If in Calibration Mode, then Detect Markers and Setup "the world"
+//**********************************************************************
+        
+        if (isCalibrating)
+        {
+        // Draw Threshold image and allow user to adjust for lighting conditions
         ofSetHexColor(0xffffff);
-        //grayImage.draw(0, 0);
-        ofSetHexColor(0x666666);	
+        grayThres.mirror(false,true);
+        grayThres.draw(0, 0);
+            
+        // How many Markers have we found?
+        ofSetHexColor(0x00ff00);	
         ofDrawBitmapString(ofToString(artk.getNumDetectedMarkers()) + " marker(s) found", 10, 20);
+            
+        ofSetHexColor(0x00ff00);	
+        ofDrawBitmapString("Threshold: " + ofToString(threshold), 10, 30);
+        ofDrawBitmapString("Use the Up/Down keys to adjust the threshold", 10, 40);
         
-        // Threshold image
-        ofSetHexColor(0xffffff);
-        //grayThres.draw(640, 0);
-        ofSetHexColor(0x666666);	
-        ofDrawBitmapString("Threshold: " + ofToString(threshold), 650, 20);
-        ofDrawBitmapString("Use the Up/Down keys to adjust the threshold", 650, 40);
-        
-        // ARTK draw
-        // An easy was to see what is going on
-        // Draws the marker location and id number
-        artk.draw(640, 0);
-        
-        // ARTK 2D stuff
         // See if marker ID '0' was detected
         // and draw a circle in the center with the ID number.
         int myIndex = artk.getMarkerIndex(0);
         ofPoint center;
+            int depth;
         if(myIndex >= 0) {	
             // Can also get the center like this:
             center = artk.getDetectedMarkerCenter(myIndex);
-            ofSetHexColor(0x0000ff);
-            ofCircle(width-center.x+640,center.y,10);
-            ofSetHexColor(0xffffff);
-            ofDrawBitmapString("0",width-center.x+640,center.y,10);
+            ofSetHexColor(0x000055);
+            ofCircle(width-center.x,center.y,30);
+            ofSetHexColor(0x00ff00);
+            ofDrawBitmapString("0",width-center.x,center.y,10);
+            depth = recordDepth.getPixelDepth(width-center.x,center.y);
+            ofDrawBitmapString(ofToString(depth),width-center.x,center.y+20,10);
         }
+        
         // See if marker ID '1' was detected
         // and draw a circle in the center with the ID number.
         myIndex = artk.getMarkerIndex(1);
         if(myIndex >= 0) {	
             // Can also get the center like this:
             center = artk.getDetectedMarkerCenter(myIndex);
-            ofSetHexColor(0x0000ff);
-            ofCircle(width-center.x+640,center.y,10);
-            ofSetHexColor(0xffffff);
-            ofDrawBitmapString("1",width-center.x+640,center.y,10);
+            ofSetHexColor(0x000055);
+            ofCircle(width-center.x,center.y,30);
+            ofSetHexColor(0x00ff00);
+            ofDrawBitmapString("1",width-center.x,center.y,10);
+            depth = recordDepth.getPixelDepth(width-center.x,center.y);
+            ofDrawBitmapString(ofToString(depth),width-center.x,center.y+20,10);
+        }
         }
 
-	} else {
-
-		playDepth.draw(0,0,640,480);
-		playImage.draw(640, 0, 640, 480);
-
-		depthRangeMask.draw(0, 480, 320, 240);	// can use this with openCV to make masks, find contours etc when not dealing with openNI 'User' like objects
-
-		if (isTracking) {
-			playUser.draw();
-
-			if (isMasking) drawMasks();
-			if (isCloud) drawPointCloud(&playUser, 0);	// 0 gives you all point clouds; use userID to see point clouds for specific users
-
-		}
-		if (isTrackingHands)
-			playHandTracker.drawHands();
-	}
-
-	//glPopMatrix();
-
+	}     
+    
+//*******************************
+//
+// On Screen Debugging and Status
+//
+//*******************************
+    
 	ofSetColor(255, 255, 0);
 
 	string statusPlay		= (string)(isLive ? "LIVE STREAM" : "PLAY STREAM");
@@ -280,6 +339,9 @@ void testApp::draw(){
 	string statusMask		= (string)(!isMasking ? "HIDE" : (isTracking ? "SHOW" : "YOU NEED TO TURN ON TRACKING!!"));
 	string statusCloud		= (string)(isCloud ? "ON" : "OFF");
 	string statusCloudData	= (string)(isCPBkgnd ? "SHOW BACKGROUND" : (isTracking ? "SHOW USER" : "YOU NEED TO TURN ON TRACKING!!"));
+    
+    //new
+    string statusCalibrating = (string)(isCalibrating ? "ON" : "OFF");
 
 	string statusHardware;
 
@@ -304,16 +366,12 @@ void testApp::draw(){
 	<< "    p : playback/live streams : " << statusPlay << endl
 	<< "    t : skeleton tracking     : " << statusSkeleton << endl
 	<< "( / ) : smooth skely (openni) : " << statusSmoothSkel << endl
-	<< "    h : hand tracking         : " << statusHands << endl
-	<< "    f : filter hands (custom) : " << statusFilter << endl
-	<< "[ / ] : filter hands factor   : " << statusFilterLvl << endl
-	<< "; / ' : smooth hands (openni) : " << statusSmoothHand << endl
 	<< "    m : drawing masks         : " << statusMask << endl
-	<< "    c : draw cloud points     : " << statusCloud << endl
+	<< "    d : draw cloud points     : " << statusCloud << endl
 	<< "    b : cloud user data       : " << statusCloudData << endl
 	<< "- / + : nearThreshold         : " << ofToString(nearThreshold) << endl
 	<< "< / > : farThreshold          : " << ofToString(farThreshold) << endl
-	<< endl
+	<< "    c : calibrate Theremin pos: " << ofToString(statusCalibrating) << endl
 	<< "File  : " << oniRecorder.getCurrentFileName() << endl
 	<< "FPS   : " << ofToString(ofGetFrameRate()) << "  " << statusHardware << endl;
 
@@ -425,8 +483,8 @@ void testApp::keyPressed(int key){
 			recordUser.setUseMaskPixels(isMasking);
 			playUser.setUseMaskPixels(isMasking);
 			break;
-		case 'c':
-		case 'C':
+		case 'd':
+		case 'D':
 			isCloud = !isCloud;
 			recordUser.setUseCloudPoints(isCloud);
 			playUser.setUseCloudPoints(isCloud);
@@ -435,6 +493,10 @@ void testApp::keyPressed(int key){
 		case 'B':
 			isCPBkgnd = !isCPBkgnd;
 			break;
+        case 'c':
+        case 'C':
+            isCalibrating = !isCalibrating;
+            break;
 		case '9':
 		case '(':
 			smooth = recordUser.getSmoothing();

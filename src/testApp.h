@@ -7,6 +7,8 @@
 #include "ofxOpenCv.h"
 #include "ofxARToolkitPlus.h"
 
+#include "Charge.h"
+
 #include "ofMain.h"
 
 class testApp : public ofBaseApp{
@@ -30,6 +32,9 @@ public:
 
 	bool				isLive, isTracking, isRecording, isCloud, isCPBkgnd, isMasking;
 	bool				isTrackingHands, isFiltering;
+    
+    //new flags
+    bool                isCalibrating;
 
 	ofxOpenNIContext	recordContext, playContext;
 	ofxDepthGenerator	recordDepth, playDepth;
@@ -59,6 +64,8 @@ public:
 
 	float				filterFactor;
     
+    
+    
     /* Size of the image */
     int width, height;
     
@@ -75,6 +82,32 @@ public:
     ofImage displayImage;
     /* The four corners of the image */
     vector<ofPoint> displayImageCorners;
+    
+    
+    
+	//temp for placement
+	float tempInc;
+	float tempX;
+	float tempY;
+	float tempZ;
+	float scale;
+	
+	
+	//EFIELD MEMBERS
+	bool dbFlag;	
+	static const int nbCharges = 7;
+	static const int nbPLignes = 50;
+	
+	float cCote;
+	
+	float rotY;
+	float incRotY;
+	//ofColor lineColor;
+	
+	int distZ;
+	
+	Charge charge[nbCharges];
+	Charge pLigne[nbPLignes];
     
 };
 
