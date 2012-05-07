@@ -9,27 +9,31 @@ extern const float dMin2 = 10;// Last Mile Drawing close to Charges
 extern const float numFieldIterations = 1000; // How many cycles do we draw for
 
 //E Field Line Style
-extern const float lineWeight = 9;
+extern const float lineWeight = 2;
 extern const float fieldScale = 3;
-float touchedDist = 150;
+float touchedDist = 0;
 bool lineTouched = false;
 ofColor lineColor;
 
 //--------------------------------------------------------------
 void testApp::setup() {
 
-    width = 640;
-	height = 480;
+    //glEnable (GL_BLEND);
+    //glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    ofEnableAlphaBlending();
+    
+    //Define camera width and height
+    width = 640; //ofGetWidth();
+	height = 480; //ofGetHeight();
     
 	isLive			= true;
 	isTracking		= true;
-	isTrackingHands	= true;
-	isFiltering		= false;
-	isRecording		= false;
 	isCloud			= false;
 	isCPBkgnd		= true;
 	isMasking		= true;
-    isCalibrating   = false;
+    isCalibrating   = true;
+    isDebug         = false;
 
 	nearThreshold = 500;
 	farThreshold  = 1000;
@@ -76,31 +80,25 @@ void testApp::setup() {
 	lineColor.a=255;
 	
 	
-	//Setup Charges on Theremin
-	charge[0].set(-100.0,0.0,0.0,1000.0);
-	charge[1].set(-100.0,0.0,0.0,1000.0);
+	//Setup Charges
     
-	tempInc = 100;
-	tempX = -30;
-	tempY = -180;
-	tempZ = 60;
-	scale = 4;
+    //Hands
+	charge[0].set(width/2,height/2,0,1000.0);
+	charge[1].set(width/2,height/2,0.0,1000.0);
 	
-	//volume
-	charge[2].set(300,200,0,-1000);
-	charge[3].set(320,250,0,-1000.0);
-	//pitch
-	charge[4].set(340,200,0,-1000.0);
-	charge[5].set(360,200,0,-1000.0);
+
 	//ground
 	charge[6].set(0,-1000,0,400.0);
 	
 	for (int i = 0; i < nbPLignes; i++)
 	{
-		pLigne[i].set(ofRandom(0,640),ofRandom(0,480),(ofRandom(0,0)),1);
+		pLigne[i].set(ofRandom(0,width),ofRandom(0,height),(ofRandom(0,0)),1);
 	}
     
 	ofBackground(0, 0, 0);
+    
+    marker0.set(0,0,0);
+    marker1.set(0,0,0);
 
 }
 
@@ -150,29 +148,31 @@ void testApp::update(){
 		recordImage.update();
 
 		// demo getting depth pixels directly from depth gen
-		depthRangeMask.setFromPixels(recordDepth.getDepthPixels(nearThreshold, farThreshold),
-									 recordDepth.getWidth(), recordDepth.getHeight(), OF_IMAGE_GRAYSCALE);
+		//depthRangeMask.setFromPixels(recordDepth.getDepthPixels(nearThreshold, farThreshold),
+		//							 recordDepth.getWidth(), recordDepth.getHeight(), OF_IMAGE_GRAYSCALE);
 
 		// update tracking/recording nodes
 		if (isTracking) {
             recordUser.update();
             
         }
-		if (isRecording) oniRecorder.update();
 
 		// demo getting pixels from user gen
-		if (isTracking && isMasking) {
+		/*
+        if (isTracking && isMasking) {
 			allUserMasks.setFromPixels(recordUser.getUserPixels(), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
 			user1Mask.setFromPixels(recordUser.getUserPixels(1), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
 			user2Mask.setFromPixels(recordUser.getUserPixels(2), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
 		}
-        
+        */
         
         
         //colorImage.setFromPixels(recordImage.getPixels(), width, height);
 		colorImage.setFromPixels(recordImage.getPixels(), recordUser.getWidth(), recordUser.getHeight());
         colorImage.mirror(false,true);
         
+        if(isCalibrating)
+        {
 		// convert our camera image to grayscale
 		grayImage = colorImage;
 		// apply a threshold so we can see what is going on
@@ -181,65 +181,76 @@ void testApp::update(){
 		
 		// Pass in the new image pixels to artk
 		artk.update(grayImage.getPixels());
-
+        }
+        
 	} 
 	
 }
 
 //--------------------------------------------------------------
 void testApp::draw(){
-
+    
+    //Scale to make Camera Image Fullscreen
+    ofScale((float)ofGetWidth()/width,(float)ofGetHeight()/height);
+    
+    ofPushMatrix();    
+    
 	ofSetColor(255, 255, 255);
 
 	if (isLive) {
-        
-		//recordDepth.draw(0,0,640,480);
-		recordImage.draw(0, 0, 640, 480);
-
-		depthRangeMask.draw(0, 480, 320, 240);	// can use this with openCV to make masks, find contours etc when not dealing with openNI 'User' like objects
+        //Draw RGB CAM image
+		recordImage.draw(0, 0, width, height);
 
 		if (isTracking) {
-			recordUser.draw();
-
-			if (isMasking) drawMasks();
-			if (isCloud) drawPointCloud(&recordUser, 1);	// 0 gives you all point clouds; use userID to see point clouds for specific users
+			
+            // Draw Debug Skeleton
+            if(isDebug) recordUser.draw();
             
             for(int i = 0; i < recordUser.getNumberOfTrackedUsers() ; i++){  
                 ofxTrackedUser* tracked = recordUser.getTrackedUser(i+1);
                 
                 if( recordUser.getXnUserGenerator().GetSkeletonCap().IsTracking(tracked->id)){  
                     if(tracked->left_lower_arm.found){
-                        
-                        ofSetHexColor(0xffffff);
-                        
-                        ofDrawBitmapString(ofToString(tracked->left_lower_arm.position[1].X),650,10);
-                        ofDrawBitmapString(ofToString(tracked->left_lower_arm.position[1].Y),750,10);
-                        ofDrawBitmapString(ofToString(tracked->left_lower_arm.position[1].Z),850,10);
-                        
                         //Put Charges in your hands
                         charge[0].set(tracked->left_lower_arm.position[1].X,tracked->left_lower_arm.position[1].Y,0,1500);
                         
-                        ofSetHexColor(0xffff77);
-                        
-                        ofCircle(tracked->left_lower_arm.position[1].X,tracked->left_lower_arm.position[1].Y,10);
+                        //Draw Debug Hands
+                        if (isDebug){
+                            ofSetHexColor(0xffff77);
+                            ofCircle(tracked->left_lower_arm.position[1].X,tracked->left_lower_arm.position[1].Y,10);
+                        }
                     }
                     if(tracked->right_lower_arm.found){
-                        
-                        ofSetHexColor(0xffffff);
-                        
-                        ofDrawBitmapString(ofToString(tracked->right_lower_arm.position[1].X),650,30);
-                        ofDrawBitmapString(ofToString(tracked->right_lower_arm.position[1].Y),750,30);
-                        ofDrawBitmapString(ofToString(tracked->right_lower_arm.position[1].Z),850,30);
                         
                         //Put Charges in your hands
                         charge[1].set(tracked->right_lower_arm.position[1].X,tracked->right_lower_arm.position[1].Y,0,1500);
                         
-                        ofSetHexColor(0xffff77);
-                        
-                        ofCircle(tracked->right_lower_arm.position[1].X,tracked->right_lower_arm.position[1].Y,10);
+                        //Draw Debug Hands
+                        if(isDebug){
+                            ofSetHexColor(0xffff77);
+                            ofCircle(tracked->right_lower_arm.position[1].X,tracked->right_lower_arm.position[1].Y,10);
+                        }
                     }
                 }
                 
+                
+                //Draw Field Lines
+
+                //Draw Charges REMOVE OR MAKE DEBUG ONLY
+                if(isDebug){
+                    for(int c = 0; c < nbCharges; c++)
+                    {
+                        charge[c].aff();
+                    }
+                }
+                
+                for(int i = 0; i < nbPLignes; i++)
+                {
+                    pLigne[i].champ(charge,nbCharges);
+                }
+                
+                
+                /*
                 //Draw Field Lines
                 for(int i = 0; i < nbPLignes; i++)
                 {
@@ -262,30 +273,33 @@ void testApp::draw(){
                     lineColor.b=255;
                     lineColor.a=255;
                 }
-                
+                 
+                */
             }
 		}
         
-//**********************************************************************
+//****************************************************************************
 //    Theremin Position Calibration
 //
-//    If in Calibration Mode, then Detect Markers and Setup "the world"
-//**********************************************************************
+//    If in Calibration Mode, then Detect Markers and move charges accordingly
+//****************************************************************************
         
         if (isCalibrating)
         {
+            
         // Draw Threshold image and allow user to adjust for lighting conditions
-        ofSetHexColor(0xffffff);
+        ofSetHexColor(0x555555);
         grayThres.mirror(false,true);
         grayThres.draw(0, 0);
             
-        // How many Markers have we found?
-        ofSetHexColor(0x00ff00);	
+        // Display Marker Data nad instruction for calibration.
+        ofSetHexColor(0xff0000);  
         ofDrawBitmapString(ofToString(artk.getNumDetectedMarkers()) + " marker(s) found", 10, 20);
-            
-        ofSetHexColor(0x00ff00);	
         ofDrawBitmapString("Threshold: " + ofToString(threshold), 10, 30);
-        ofDrawBitmapString("Use the Up/Down keys to adjust the threshold", 10, 40);
+            ofDrawBitmapString("Use the Up/Down keys to adjust the threshold until both markers are visible.", 10, 40); 
+        ofDrawBitmapString("blue circles will apear over the markers when it's good.", 10, 50);
+        ofDrawBitmapString("Press the 'c' key when done.", 10,60);
+        ofDrawBitmapString("Press the 'd' key to show more debug info.", 10,70);    
         
         // See if marker ID '0' was detected
         // and draw a circle in the center with the ID number.
@@ -293,32 +307,70 @@ void testApp::draw(){
         ofPoint center;
             int depth;
         if(myIndex >= 0) {	
-            // Can also get the center like this:
+            //Get the center of Marker '0'
             center = artk.getDetectedMarkerCenter(myIndex);
+            
+            //Draw location
             ofSetHexColor(0x000055);
             ofCircle(width-center.x,center.y,30);
             ofSetHexColor(0x00ff00);
             ofDrawBitmapString("0",width-center.x,center.y,10);
             depth = recordDepth.getPixelDepth(width-center.x,center.y);
             ofDrawBitmapString(ofToString(depth),width-center.x,center.y+20,10);
+            ofDrawBitmapString(ofToString(center.x),width-center.x,center.y+30,10);
+            ofDrawBitmapString(ofToString(center.y),width-center.x,center.y+40,10);
+            
+            //Store Position
+            marker0.set(center.x,center.y,depth);
+            
+            //Theremin volume
+            charge[2].set(width-marker0.x,marker0.y,0,-1000);
+            charge[3].set(width-marker0.x,marker0.y+10,0,-1000.0);
+
+
         }
         
         // See if marker ID '1' was detected
         // and draw a circle in the center with the ID number.
         myIndex = artk.getMarkerIndex(1);
         if(myIndex >= 0) {	
-            // Can also get the center like this:
+            
+            //Get the center of Marker '1'
             center = artk.getDetectedMarkerCenter(myIndex);
+            
+            //Draw Location
             ofSetHexColor(0x000055);
             ofCircle(width-center.x,center.y,30);
             ofSetHexColor(0x00ff00);
             ofDrawBitmapString("1",width-center.x,center.y,10);
             depth = recordDepth.getPixelDepth(width-center.x,center.y);
             ofDrawBitmapString(ofToString(depth),width-center.x,center.y+20,10);
+            ofDrawBitmapString(ofToString(center.x),width-center.x,center.y+30,10);
+            ofDrawBitmapString(ofToString(center.y),width-center.x,center.y+40,10);
+            
+            //Store Position
+            marker1.set(center.x,center.y,depth);
+            //Theremin pitch
+            charge[4].set(width-marker1.x,marker1.y,0,-1000.0);
+            charge[5].set(width-marker1.x,marker1.y+10,0,-1000.0);
+        
         }
+            
+            //Calculate Distance (pixels) Between Markers
+            ofVec2f temp0;
+            temp0.set(marker0.x, marker0.y);
+            ofVec2f temp1;
+            temp1.set(marker1.x,marker1.y);
+            
+            ofVec2f temp2 = temp0 - temp1;
+            
+            ofDrawBitmapString(ofToString(temp2.x)+ " " + ofToString(temp2.y), width - marker0.x, marker0.y+50);
+            
         }
 
-	}     
+	}
+    
+ofPopMatrix();    
     
 //*******************************
 //
@@ -326,22 +378,17 @@ void testApp::draw(){
 //
 //*******************************
     
+    
+if(isDebug){
+    
 	ofSetColor(255, 255, 0);
 
-	string statusPlay		= (string)(isLive ? "LIVE STREAM" : "PLAY STREAM");
-	string statusRec		= (string)(!isRecording ? "READY" : "RECORDING");
 	string statusSkeleton	= (string)(isTracking ? "TRACKING USERS: " + (string)(isLive ? ofToString(recordUser.getNumberOfTrackedUsers()) : ofToString(playUser.getNumberOfTrackedUsers())) + "" : "NOT TRACKING USERS");
-	string statusSmoothSkel = (string)(isLive ? ofToString(recordUser.getSmoothing()) : ofToString(playUser.getSmoothing()));
-	string statusHands		= (string)(isTrackingHands ? "TRACKING HANDS: " + (string)(isLive ? ofToString(recordHandTracker.getNumTrackedHands()) : ofToString(playHandTracker.getNumTrackedHands())) + ""  : "NOT TRACKING");
-	string statusFilter		= (string)(isFiltering ? "FILTERING" : "NOT FILTERING");
-	string statusFilterLvl	= ofToString(filterFactor);
-	string statusSmoothHand = (string)(isLive ? ofToString(recordHandTracker.getSmoothing()) : ofToString(playHandTracker.getSmoothing()));
 	string statusMask		= (string)(!isMasking ? "HIDE" : (isTracking ? "SHOW" : "YOU NEED TO TURN ON TRACKING!!"));
-	string statusCloud		= (string)(isCloud ? "ON" : "OFF");
-	string statusCloudData	= (string)(isCPBkgnd ? "SHOW BACKGROUND" : (isTracking ? "SHOW USER" : "YOU NEED TO TURN ON TRACKING!!"));
     
     //new
     string statusCalibrating = (string)(isCalibrating ? "ON" : "OFF");
+    string statusDebug = (string)(isDebug ? "ON" : "OFF");
 
 	string statusHardware;
 
@@ -360,23 +407,21 @@ void testApp::draw(){
 #endif
 
 	stringstream msg;
-
+    
 	msg
-	<< "    s : start/stop recording  : " << statusRec << endl
-	<< "    p : playback/live streams : " << statusPlay << endl
+    << "    c : calibrate Theremin pos: " << ofToString(statusCalibrating) << endl
+    << "    d : debug toggle          : " << statusDebug << endl
 	<< "    t : skeleton tracking     : " << statusSkeleton << endl
-	<< "( / ) : smooth skely (openni) : " << statusSmoothSkel << endl
 	<< "    m : drawing masks         : " << statusMask << endl
-	<< "    d : draw cloud points     : " << statusCloud << endl
-	<< "    b : cloud user data       : " << statusCloudData << endl
 	<< "- / + : nearThreshold         : " << ofToString(nearThreshold) << endl
 	<< "< / > : farThreshold          : " << ofToString(farThreshold) << endl
-	<< "    c : calibrate Theremin pos: " << ofToString(statusCalibrating) << endl
 	<< "File  : " << oniRecorder.getCurrentFileName() << endl
 	<< "FPS   : " << ofToString(ofGetFrameRate()) << "  " << statusHardware << endl;
 
-	ofDrawBitmapString(msg.str(), 20, 560);
-
+	ofDrawBitmapString(msg.str(), 10, 80);
+    }
+   // ofTranslate(-ofGetWidth()/4,-ofGetHeight()/4,0);
+    
 }
 
 void testApp:: drawMasks() {
@@ -440,42 +485,10 @@ void testApp::keyPressed(int key){
 			break;
 			
 #endif
-		case 's':
-		case 'S':
-			if (isRecording) {
-				oniRecorder.stopRecord();
-				isRecording = false;
-				break;
-			} else {
-				oniRecorder.startRecord(generateFileName());
-				isRecording = true;
-				break;
-			}
-			break;
-		case 'p':
-		case 'P':
-			if (oniRecorder.getCurrentFileName() != "" && !isRecording && isLive) {
-				setupPlayback(oniRecorder.getCurrentFileName());
-				isLive = false;
-			} else {
-				isLive = true;
-			}
-			break;
+		
 		case 't':
 		case 'T':
 			isTracking = !isTracking;
-			break;
-		case 'h':
-		case 'H':
-			isTrackingHands = !isTrackingHands;
-			if(isLive) recordHandTracker.toggleTrackHands();
-			if(!isLive) playHandTracker.toggleTrackHands();
-			break;
-		case 'f':
-		case 'F':
-			isFiltering = !isFiltering;
-			recordHandTracker.isFiltering = isFiltering;
-			playHandTracker.isFiltering = isFiltering;
 			break;
 		case 'm':
 		case 'M':
@@ -485,9 +498,7 @@ void testApp::keyPressed(int key){
 			break;
 		case 'd':
 		case 'D':
-			isCloud = !isCloud;
-			recordUser.setUseCloudPoints(isCloud);
-			playUser.setUseCloudPoints(isCloud);
+			isDebug = !isDebug;
 			break;
 		case 'b':
 		case 'B':
@@ -498,53 +509,6 @@ void testApp::keyPressed(int key){
             isCalibrating = !isCalibrating;
             break;
 		case '9':
-		case '(':
-			smooth = recordUser.getSmoothing();
-			if (smooth - 0.1f > 0.0f) {
-				recordUser.setSmoothing(smooth - 0.1f);
-				playUser.setSmoothing(smooth - 0.1f);
-			}
-			break;
-		case '0':
-		case ')':
-			smooth = recordUser.getSmoothing();
-			if (smooth + 0.1f <= 1.0f) {
-				recordUser.setSmoothing(smooth + 0.1f);
-				playUser.setSmoothing(smooth + 0.1f);
-			}
-			break;
-		case '[':
-		//case '{':
-			if (filterFactor - 0.1f > 0.0f) {
-				filterFactor = filterFactor - 0.1f;
-				recordHandTracker.setFilterFactors(filterFactor);
-				if (oniRecorder.getCurrentFileName() != "") playHandTracker.setFilterFactors(filterFactor);
-			}
-			break;
-		case ']':
-		//case '}':
-			if (filterFactor + 0.1f <= 1.0f) {
-				filterFactor = filterFactor + 0.1f;
-				recordHandTracker.setFilterFactors(filterFactor);
-				if (oniRecorder.getCurrentFileName() != "") playHandTracker.setFilterFactors(filterFactor);
-			}
-			break;
-		case ';':
-		case ':':
-			smooth = recordHandTracker.getSmoothing();
-			if (smooth - 0.1f > 0.0f) {
-				recordHandTracker.setSmoothing(smooth -  0.1f);
-				playHandTracker.setSmoothing(smooth -  0.1f);
-			}
-			break;
-		case '\'':
-		case '\"':
-			smooth = recordHandTracker.getSmoothing();
-			if (smooth + 0.1f <= 1.0f) {
-				recordHandTracker.setSmoothing(smooth +  0.1f);
-				playHandTracker.setSmoothing(smooth +  0.1f);
-			}
-			break;
 		case '>':
 		case '.':
 			farThreshold += 50;

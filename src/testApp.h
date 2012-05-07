@@ -30,11 +30,11 @@ public:
 	void	setupPlayback(string _filename);
 	string	generateFileName();
 
-	bool				isLive, isTracking, isRecording, isCloud, isCPBkgnd, isMasking;
-	bool				isTrackingHands, isFiltering;
+	bool				isLive, isTracking, isCloud, isCPBkgnd, isMasking;
     
     //new flags
     bool                isCalibrating;
+    bool                isDebug;
 
 	ofxOpenNIContext	recordContext, playContext;
 	ofxDepthGenerator	recordDepth, playDepth;
@@ -83,15 +83,9 @@ public:
     /* The four corners of the image */
     vector<ofPoint> displayImageCorners;
     
-    
-    
-	//temp for placement
-	float tempInc;
-	float tempX;
-	float tempY;
-	float tempZ;
-	float scale;
-	
+    //Marker Locations
+    ofVec3f marker0;
+    ofVec3f marker1;	
 	
 	//EFIELD MEMBERS
 	bool dbFlag;	

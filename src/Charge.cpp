@@ -83,7 +83,10 @@ void Charge::champ(Charge _charge[], int _nbCharges)
 				newPos.set(_charge[fs.cTrap]);
 				break;
 			}
-			
+            
+            float alpher = 255;
+            
+			/*
 			float alpher =255-sqrt(fs.shift.x*fs.shift.x + fs.shift.y*fs.shift.y + fs.shift.z*fs.shift.z)*2;
 			
 			if ( mobile.getNorm() >250)
@@ -103,7 +106,7 @@ void Charge::champ(Charge _charge[], int _nbCharges)
 			{
 				lineColor.a = alpher;
 			} else { lineColor.a = alpher/7;}
-			
+			*/
 			
 			
 			//shift.setNorm(intensPas);
