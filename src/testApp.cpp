@@ -4,13 +4,13 @@
 //----------------------------------
 
 //E Field Quality/Efficiency
-extern const float intensPas = 5; // Distance between segments
-extern const float dMin2 = 10;// Last Mile Drawing close to Charges
-extern const float numFieldIterations = 1000; // How many cycles do we draw for
+extern float intensPas = 5; // Distance between segments
+extern float dMin2 = 10;// Last Mile Drawing close to Charges
+extern float numFieldIterations = 1000; // How many cycles do we draw for
 
 //E Field Line Style
-extern const float lineWeight = 2;
-extern const float fieldScale = 3;
+extern float lineWeight = 2;
+extern float fieldScale = 3;
 float touchedDist = 0;
 bool lineTouched = false;
 ofColor lineColor;
@@ -411,7 +411,6 @@ if(isDebug){
 	msg
     << "    c : calibrate Theremin pos: " << ofToString(statusCalibrating) << endl
     << "    d : debug toggle          : " << statusDebug << endl
-	<< "    t : skeleton tracking     : " << statusSkeleton << endl
 	<< "    m : drawing masks         : " << statusMask << endl
 	<< "- / + : nearThreshold         : " << ofToString(nearThreshold) << endl
 	<< "< / > : farThreshold          : " << ofToString(farThreshold) << endl
@@ -419,9 +418,30 @@ if(isDebug){
 	<< "FPS   : " << ofToString(ofGetFrameRate()) << "  " << statusHardware << endl;
 
 	ofDrawBitmapString(msg.str(), 10, 80);
-    }
-   // ofTranslate(-ofGetWidth()/4,-ofGetHeight()/4,0);
     
+    
+    stringstream guiMsg;
+    
+    int r =lineColor.r;
+    int g =lineColor.g;
+    int b =lineColor.b;
+    
+	guiMsg
+    << "  + / - : Globals can be adjusted up or down using the listed keys" << endl
+    << "  1 / Q : Line segment length,   lower is more complex : " << ofToString(intensPas) << endl
+    << "  2 / W : Last Mile Drawing,     lower is more complex : " << ofToString(dMin2) << endl
+	<< "  3 / E : Number of Iterations, higher is more complex : " << ofToString(numFieldIterations) << endl
+	<< "  4 / R : Line Weight                                  : " << ofToString(lineWeight) << endl
+	<< "  5 / T : Line Color,                    RED component : " << ofToString(r) << endl
+	<< "  6 / Y : Line Color,                  GREEN component : " << ofToString(g) << endl
+	<< "  7 / U : Line Color,                   BLUE component : " << ofToString(b) << endl
+	<< "  FPS   : " << ofToString(ofGetFrameRate());
+    
+	ofDrawBitmapString(guiMsg.str(), 10, 340);
+    
+    
+   // ofTranslate(-ofGetWidth()/4,-ofGetHeight()/4,0);
+}
 }
 
 void testApp:: drawMasks() {
@@ -486,10 +506,6 @@ void testApp::keyPressed(int key){
 			
 #endif
 		
-		case 't':
-		case 'T':
-			isTracking = !isTracking;
-			break;
 		case 'm':
 		case 'M':
 			isMasking = !isMasking;
@@ -531,9 +547,60 @@ void testApp::keyPressed(int key){
 			nearThreshold -= 50;
 			if (nearThreshold < 0) nearThreshold = 0;
 			break;
-		case 'r':
-			recordContext.toggleRegisterViewport();
-			break;
+        case '1':
+            intensPas += 1; // Distance between segments
+            dMin2 = intensPas * intensPas;
+            break;
+        case 'q':
+        case 'Q':
+            if (intensPas>1)
+            intensPas -= 1;
+            dMin2 = intensPas * intensPas;
+            break;
+        case '2':
+            dMin2 +=1;// Last Mile Drawing close to Charges
+            break;
+        case 'w':
+        case 'W':
+            if(dMin2>1)
+                dMin2-=1;
+            break;
+        case '3':
+            numFieldIterations += 200;
+            break;
+        case 'e':
+            case 'E':
+            numFieldIterations -= 200;
+            break;
+        case '4':
+            lineWeight += .1;
+            break;
+        case 'r':
+        case 'R':    
+            if(lineWeight>.1)
+                lineWeight-=.1;
+            break;
+        case '5':
+            lineColor.set(lineColor.r+1,lineColor.g,lineColor.b);
+            break;
+        case 't':
+        case 'T':
+            lineColor.set(lineColor.r-1,lineColor.g,lineColor.b);
+            break;
+        case '6':
+            lineColor.set(lineColor.r,lineColor.g+1,lineColor.b);
+            break;
+        case 'y':
+        case 'Y':
+            lineColor.set(lineColor.r,lineColor.g-1,lineColor.b);
+            break;
+        case '7':
+            lineColor.set(lineColor.r,lineColor.g,lineColor.b+1);
+            break;
+        case 'u':
+        case 'U':
+            lineColor.set(lineColor.r,lineColor.g,lineColor.b-1);
+            break;
 		default:
 			break;
 	}

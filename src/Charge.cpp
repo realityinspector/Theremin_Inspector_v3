@@ -78,11 +78,11 @@ void Charge::champ(Charge _charge[], int _nbCharges)
 		{
 			fs = mobile.fieldshift(_charge,_nbCharges);
 			
-			if (fs.trapped) 
+			if (!fs.trapped) 
 			{
-				newPos.set(_charge[fs.cTrap]);
-				break;
-			}
+				
+				
+			
             
             float alpher = 255;
             
@@ -118,6 +118,7 @@ void Charge::champ(Charge _charge[], int _nbCharges)
 			//newPos += fs.shift;
 			newPos.set(newPos.x+fs.shift.x,newPos.y+fs.shift.y,newPos.z+fs.shift.z);
 			
+            
 			glBegin(GL_LINES);
 			glColor4ub((unsigned char)lineColor.r,(unsigned char)lineColor.g,(unsigned char)lineColor.b,(unsigned char)lineColor.a);
 			glVertex3f(mobile.x, mobile.y, mobile.z);
@@ -127,6 +128,13 @@ void Charge::champ(Charge _charge[], int _nbCharges)
 			//printf("%f, %f, %f, %f \n",mobile.x, mobile.y, mobile.z,mobile.magn);
 			
 			mobile.set(newPos.x,newPos.y,newPos.z,mobile.magn);
+            
+            }
+            
+            else newPos.set(_charge[fs.cTrap]);
+
+            
+            
 		}
 		
 		 
@@ -157,13 +165,13 @@ FieldShift Charge::fieldshift(Charge _charge[], int _nbCharges)
 		
 		intens = (-_charge[c].magn*magn/dist2);
 		
-		if (dist2 <dMin2)
+		if (dist2 < dMin2)
 		{
 			trapped = true;
 			cTrap = c;
 			break;
 		}
-		
+
 		vec.set(delta.x,delta.y,delta.z);
 		vec *= intens;
 		shift += vec;
