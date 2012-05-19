@@ -8,10 +8,19 @@
 #include "ofxARToolkitPlus.h"
 
 #include "Charge.h"
-
 #include "ofMain.h"
 
-class testApp : public ofBaseApp{
+#include "hEvents.h"
+// The event system used by hGui
+// Can also be used to create new events and listeners
+
+#include "hObject.h"
+// Base object that contain virtual functions
+// Objects that inherit from hObject can use its event listeners for free
+
+#include "hGui_all.h"
+
+class testApp : public ofBaseApp,public hObject{
 
 public:
 	void setup();
@@ -36,6 +45,38 @@ public:
     bool                isCalibrating;
     bool                isDebug;
 
+    //Debug GUI Vars
+    hGui * gui;
+    ofTrueTypeFont * font;
+	std::string myString;
+    float xPct, yPct;
+    
+    int red,blue,green;
+    
+    // Methods called by the event listeners:
+    // (must have the same names, parameters and return value than the methods defined in "hObject.h")
+    
+	void start(void);
+	void stop(void);
+	void clear(void);
+    
+	void setValue(double val);
+	void setValueToItem(double val, int index);
+	void setXY(double x, double y);
+    
+	void selectItem(int item);
+    void itemSetSelected(int item, bool flag);
+    
+	void setLabel(std::string label);
+    
+	void setText(std::string text);
+	void addText(std::string text);
+	void clearText(void);
+    
+	void openItem(int index);
+	void answerDialog(int buttonID);
+    
+    
 	ofxOpenNIContext	recordContext, playContext;
 	ofxDepthGenerator	recordDepth, playDepth;
 

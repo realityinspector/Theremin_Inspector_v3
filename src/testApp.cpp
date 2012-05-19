@@ -1,4 +1,5 @@
 #include "testApp.h"
+#include "hGui_all.h"
 
 //Globals
 //----------------------------------
@@ -39,6 +40,75 @@ void testApp::setup() {
 	farThreshold  = 1000;
 
 	filterFactor = 0.1f;
+    
+    //Setup a GUI for debugging
+    gui = hGui::getInstance();
+    gui->setup("fonts/frabk.ttf", 9);
+    
+    font = new ofTrueTypeFont;
+	font->loadFont("fonts/AvantGarde-Book.ttf", 16, true, true);
+	myString = "";
+    
+    hPanel * mainPanel =
+	gui->addPanel("mainPanel", NULL, HGUI_ABSOLUTE_POSITION, 380, 20 , 200, 400, true);
+    // addPanel(std::string name, hPanel * parent, int dispMode, int x, int y, int width, int height, bool hasBorder);
+    
+    mainPanel->setVisibleBackground(true);
+    gui->hide();
+	// by default, the background of a panel is not visible, so make it visible
+    
+    // Let our gui engine know what is our root widget (can also be done or changed later)
+    // All events will first process the root widget
+    // Note: A program can eventually set another root widget during its execution
+    
+	gui->setRootWidget(mainPanel);
+    
+	gui->addListeners();
+	// void addListeners(void);
+    
+	
+	//----------------------------------------
+	// Create 3 sliders:
+    
+	hSlider* slider1 =
+	gui->addSlider("slider1", mainPanel, HGUI_NEXT_ROW, 10, 10, 100);
+	hSlider* slider2 =
+	gui->addSlider("slider2", mainPanel, HGUI_BOTTOM, 0, -1, 100);
+    // ^ start y of new slider has to be end the y of previous
+    // else an extra line is showing
+    
+	hSlider* slider3 =
+	gui->addSlider("slider3", mainPanel, HGUI_BOTTOM, 0, -1, 100);
+    
+    
+    
+    // Set the range and value of the sliders
+	slider1->setRange(0, 255); slider1->setValue(234);
+	slider2->setRange(0, 255); slider2->setValue(234);
+	slider3->setRange(0, 255); slider3->setValue(234);
+    
+	// Change the color of the sliders
+	slider1->setColor(0xFF0000); // slider1->setBackgroundColor(0xFF8888);
+	slider2->setColor(0x00FF00); // slider2->setBackgroundColor(0x88FF88);
+	slider3->setColor(0x0000FF); // slider3->setBackgroundColor(0x8888FF);
+    
+    red = lineColor.r;
+    green = lineColor.g;
+    blue = lineColor.b;
+    slider1->setIntVar(&red);
+	slider2->setIntVar(&green);
+	slider3->setIntVar(&blue);
+    
+    
+    // Create and initialize the events engine. (It's a singleton too)
+    
+	hEvents * events = hEvents::getInstance();
+	events->setup();
+    
+	events->addObject("testApp", this);
+    
+    
+    /////////////////////////////////////////////////////////////////////
 
 	setupRecording();
 
@@ -469,6 +539,116 @@ void testApp::drawPointCloud(ofxUserGenerator * user_generator, int userID) {
 
 
 //--------------------------------------------------------------
+//					Methods called by widgets
+//					(using prototypes defined in hObject.h)
+//--------------------------------------------------------------
+
+void testApp::start(void){
+	myString = "start";
+}
+
+void testApp::stop(void){
+	myString = "stop";
+}
+
+void testApp::clear(void){
+	myString = "";
+}
+
+//--------------------------------------------------------------
+
+void testApp::setValue(double val)
+{
+	myString = ofToString(val);
+}
+
+void testApp::setValueToItem(double val, int index)
+{
+	myString = ofToString(index) + " =>" + ofToString(val);
+}
+
+void testApp::setXY(double x, double y)
+{
+	myString = ofToString(x) + "\n" + ofToString(y);
+	xPct = x; yPct = y;
+}
+
+//--------------------------------------------------------------
+
+void testApp::selectItem(int item)
+{
+	myString = ofToString(item);
+}
+
+void testApp::itemSetSelected(int item, bool flag)
+{
+	if(flag == true)
+        myString = ofToString(item) + "(true)";
+	else myString = ofToString(item) + "(false)";
+}
+
+//--------------------------------------------------------------
+
+void testApp::setLabel(std::string label)
+{
+	myString = label;
+}
+
+void testApp::setText(std::string text)
+{
+	myString = text; // Not very clever processing...
+	// it's just a test
+}
+
+void testApp::addText(std::string text)
+{
+	myString += text; // another possibility, add instead of set text
+	// (you have to change setMessage to "addText" to work)
+}
+
+void testApp::clearText(void)
+{
+	myString.clear();
+}
+
+void testApp::openItem(int item)
+// Open dialogs:
+// #1 is a message box
+// #2 is an alert
+{
+	hEvents * events = hEvents::getInstance();
+    
+	switch(item) {
+		case 1:
+			events->sendEvent("msgBoxDialog.clear");
+			events->sendEvent("msgBoxDialog.display", "line1");
+			events->sendEvent("msgBoxDialog.display", "line2");
+			events->sendEvent("msgBoxDialog.display", "line3");
+			events->sendEvent("msgBoxDialog.display", "line4");
+			events->sendEvent("msgBoxDialog.display", "line5");
+			events->sendEvent("msgBoxDialog.display", "line6 (scrolling...)");
+			events->sendEvent("msgBoxDialog.display", "line7");
+            break;
+            
+		case 2:
+			events->sendEvent("alertDialog.clear");
+			events->sendEvent("alertDialog.display", "Are you ready?");
+            break;
+	}
+}
+
+void testApp::answerDialog(int buttonID)
+// Called to process the answer of the alert dialog
+{
+	switch(buttonID) {
+		case 1: myString = "answer = yes"; break;
+		case 2: myString = "answer = no";  break;
+	}
+}
+
+
+
+//--------------------------------------------------------------
 void testApp::keyPressed(int key){
 
 	float smooth;
@@ -499,6 +679,11 @@ void testApp::keyPressed(int key){
 		case 'd':
 		case 'D':
 			isDebug = !isDebug;
+            if(isDebug) {
+               gui->show(); 
+            }
+            else gui->hide();
+            
 			break;
 		case 'b':
 		case 'B':
