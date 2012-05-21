@@ -14,7 +14,9 @@
 class testApp : public ofBaseApp{
 
 public:
-	void setup();
+	
+    //OF Functions
+    void setup();
 	void update();
 	void draw();
 
@@ -26,11 +28,18 @@ public:
 	void mouseReleased(int x, int y, int button);
 	void windowResized(int w, int h);
 
+    //ofxOpenNI functions
 	void	setupRecording(string _filename = "");
 	void	setupPlayback(string _filename);
 	string	generateFileName();
+    
+    //Theremin Inspector Functions
+    void    trackClosestUser();
+    void    calibrateThereminPosition();
+    void    drawEFieldLines();
+   // int     autoFindThreshold();
 
-	bool				isLive, isTracking, isCloud, isCPBkgnd, isMasking;
+	bool	isLive, isTracking, isCloud, isCPBkgnd, isMasking;
     
     //new flags
     bool                isCalibrating;

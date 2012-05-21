@@ -243,8 +243,8 @@
 		77781EAA14BA9AE300CD45EF /* ofxGestureGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxGestureGenerator.h; sourceTree = "<group>"; };
 		77781EAB14BA9AE300CD45EF /* ofxHandGenerator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxHandGenerator.cpp; sourceTree = "<group>"; };
 		77781EAC14BA9AE300CD45EF /* ofxHandGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxHandGenerator.h; sourceTree = "<group>"; };
-		77781EAD14BA9AE300CD45EF /* ofxHardwareDriver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxHardwareDriver.cpp; sourceTree = "<group>"; };
-		77781EAE14BA9AE300CD45EF /* ofxHardwareDriver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxHardwareDriver.h; sourceTree = "<group>"; };
+		77781EAD14BA9AE300CD45EF /* ofxHardwareDriver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ofxHardwareDriver.cpp; path = ../../ofxOpenNI/src/ofxHardwareDriver.cpp; sourceTree = "<group>"; };
+		77781EAE14BA9AE300CD45EF /* ofxHardwareDriver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ofxHardwareDriver.h; path = ../../ofxOpenNI/src/ofxHardwareDriver.h; sourceTree = "<group>"; };
 		77781EAF14BA9AE300CD45EF /* ofxImageGenerator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxImageGenerator.cpp; sourceTree = "<group>"; };
 		77781EB014BA9AE300CD45EF /* ofxImageGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxImageGenerator.h; sourceTree = "<group>"; };
 		77781EB114BA9AE300CD45EF /* ofxIRGenerator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxIRGenerator.cpp; sourceTree = "<group>"; };
@@ -259,8 +259,8 @@
 		77781EBA14BA9AE300CD45EF /* ofxTrackedHand.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxTrackedHand.h; sourceTree = "<group>"; };
 		77781EBB14BA9AE300CD45EF /* ofxTrackedUser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxTrackedUser.cpp; sourceTree = "<group>"; };
 		77781EBC14BA9AE300CD45EF /* ofxTrackedUser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxTrackedUser.h; sourceTree = "<group>"; };
-		77781EBD14BA9AE300CD45EF /* ofxUserGenerator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxUserGenerator.cpp; sourceTree = "<group>"; };
-		77781EBE14BA9AE300CD45EF /* ofxUserGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxUserGenerator.h; sourceTree = "<group>"; };
+		77781EBD14BA9AE300CD45EF /* ofxUserGenerator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ofxUserGenerator.cpp; path = "../../ofxOpenNI-RM/src/ofxUserGenerator.cpp"; sourceTree = "<group>"; };
+		77781EBE14BA9AE300CD45EF /* ofxUserGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ofxUserGenerator.h; path = "../../ofxOpenNI-RM/src/ofxUserGenerator.h"; sourceTree = "<group>"; };
 		912EE9401544B58B00D3C0D0 /* ar.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ar.h; sourceTree = "<group>"; };
 		912EE9411544B58B00D3C0D0 /* arBitFieldPattern.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arBitFieldPattern.h; sourceTree = "<group>"; };
 		912EE9421544B58B00D3C0D0 /* arMulti.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arMulti.h; sourceTree = "<group>"; };
@@ -677,7 +677,7 @@
 			path = Win32;
 			sourceTree = "<group>";
 		};
-		77781EA614BA9AE300CD45EF /* src */ = {
+		77781EA614BA9AE300CD45EF /* ofxOpenNI */ = {
 			isa = PBXGroup;
 			children = (
 				77781EA714BA9AE300CD45EF /* ofxDepthGenerator.cpp */,
@@ -705,8 +705,8 @@
 				77781EBD14BA9AE300CD45EF /* ofxUserGenerator.cpp */,
 				77781EBE14BA9AE300CD45EF /* ofxUserGenerator.h */,
 			);
-			name = src;
-			path = ../../../addons/ofxOpenNI/src;
+			name = ofxOpenNI;
+			path = "../../../addons/ofxOpenNI-RM/src";
 			sourceTree = "<group>";
 		};
 		912EE93D1544B58B00D3C0D0 /* ofxARToolkitPlus */ = {
@@ -1046,7 +1046,7 @@
 			children = (
 				912EE9CB1544B59B00D3C0D0 /* ofxOpenCv */,
 				912EE93D1544B58B00D3C0D0 /* ofxARToolkitPlus */,
-				77781EA614BA9AE300CD45EF /* src */,
+				77781EA614BA9AE300CD45EF /* ofxOpenNI */,
 				770F031514B9969E003CCE99 /* lib */,
 				770F033314B996AE003CCE99 /* include */,
 			);

@@ -4,8 +4,8 @@
 //----------------------------------
 
 //E Field Quality/Efficiency
-extern float intensPas = 5; // Distance between segments
-extern float dMin2 = 10;// Last Mile Drawing close to Charges
+extern float intensPas = 10; // Distance between segments
+extern float dMin2 = 100;// Last Mile Drawing close to Charges
 extern float numFieldIterations = 1000; // How many cycles do we draw for
 
 //E Field Line Style
@@ -17,9 +17,6 @@ ofColor lineColor;
 
 //--------------------------------------------------------------
 void testApp::setup() {
-
-    //glEnable (GL_BLEND);
-    //glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     ofEnableAlphaBlending();
     
@@ -46,24 +43,14 @@ void testApp::setup() {
 	grayImage.allocate(width, height);
 	grayThres.allocate(width, height);
 	
-	// This uses the default camera calibration and marker file
-	artk.setup(width, height);
-    
-	// The camera calibration file can be created using GML:
-	// http://graphics.cs.msu.ru/en/science/research/calibration/cpp
-	// and these instructions:
-	// http://studierstube.icg.tu-graz.ac.at/doc/pdf/Stb_CamCal.pdf
-	// This only needs to be done once and will aid with detection
-	// for the specific camera you are using
-	// Put that file in the data folder and then call setup like so:
-	// artk.setup(width, height, "myCamParamFile.cal", "markerboard_480-499.cfg");
-	
 	// Set the threshold
 	// ARTK+ does the thresholding for us
 	// We also do it in OpenCV so we can see what it looks like for debugging
 	threshold = 70;
+    artk.activateAutoThreshold(false);
 	artk.setThreshold(threshold);
     
+    //artk.activateAutoThreshold(true);
     
     //SETUP EFIELD AND CHARGES
 	//------------------------
@@ -118,8 +105,9 @@ void testApp::setupRecording(string _filename) {
 	recordUser.setSmoothing(filterFactor);				// built in openni skeleton smoothing...
 	recordUser.setUseMaskPixels(isMasking);
 	recordUser.setUseCloudPoints(isCloud);
-	recordUser.setMaxNumberOfUsers(2);					// use this to set dynamic max number of users (NB: that a hard upper limit is defined by MAX_NUMBER_USERS in ofxUserGenerator)
-
+	recordUser.setMaxNumberOfUsers(8);					// use this to set dynamic max number of users (NB: that a hard upper limit is defined by MAX_NUMBER_USERS in ofxUserGenerator)
+    
+    
 	recordContext.toggleRegisterViewport();
 	recordContext.toggleMirror();
 
@@ -158,13 +146,13 @@ void testApp::update(){
         }
 
 		// demo getting pixels from user gen
-		/*
+		
         if (isTracking && isMasking) {
 			allUserMasks.setFromPixels(recordUser.getUserPixels(), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
 			user1Mask.setFromPixels(recordUser.getUserPixels(1), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
 			user2Mask.setFromPixels(recordUser.getUserPixels(2), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
 		}
-        */
+        
         
         
         //colorImage.setFromPixels(recordImage.getPixels(), width, height);
@@ -190,195 +178,41 @@ void testApp::update(){
 //--------------------------------------------------------------
 void testApp::draw(){
     
-    //Scale to make Camera Image Fullscreen
-    ofScale((float)ofGetWidth()/width,(float)ofGetHeight()/height);
+//Scale to make Camera Image Fullscreen
+ofScale((float)ofGetWidth()/width,(float)ofGetHeight()/height);
     
-    ofPushMatrix();    
+ofPushMatrix();    
     
-	ofSetColor(255, 255, 255);
+ofSetColor(255, 255, 255);
 
 	if (isLive) {
         //Draw RGB CAM image
 		recordImage.draw(0, 0, width, height);
-
 		if (isTracking) {
 			
-            // Draw Debug Skeleton
+            // DEBUG Draw Skeleton
             if(isDebug) recordUser.draw();
+            if(isCalibrating) calibrateThereminPosition();
+            trackClosestUser();            
             
-            for(int i = 0; i < recordUser.getNumberOfTrackedUsers() ; i++){  
-                ofxTrackedUser* tracked = recordUser.getTrackedUser(i+1);
-                
-                if( recordUser.getXnUserGenerator().GetSkeletonCap().IsTracking(tracked->id)){  
-                    if(tracked->left_lower_arm.found){
-                        //Put Charges in your hands
-                        charge[0].set(tracked->left_lower_arm.position[1].X,tracked->left_lower_arm.position[1].Y,0,1500);
-                        
-                        //Draw Debug Hands
-                        if (isDebug){
-                            ofSetHexColor(0xffff77);
-                            ofCircle(tracked->left_lower_arm.position[1].X,tracked->left_lower_arm.position[1].Y,10);
-                        }
-                    }
-                    if(tracked->right_lower_arm.found){
-                        
-                        //Put Charges in your hands
-                        charge[1].set(tracked->right_lower_arm.position[1].X,tracked->right_lower_arm.position[1].Y,0,1500);
-                        
-                        //Draw Debug Hands
-                        if(isDebug){
-                            ofSetHexColor(0xffff77);
-                            ofCircle(tracked->right_lower_arm.position[1].X,tracked->right_lower_arm.position[1].Y,10);
-                        }
-                    }
-                }
-                
-                
-                //Draw Field Lines
-
-                //Draw Charges REMOVE OR MAKE DEBUG ONLY
-                if(isDebug){
-                    for(int c = 0; c < nbCharges; c++)
-                    {
+            
+            // DEBUG Draw Charges
+            if(isDebug){
+                for(int c = 0; c < nbCharges; c++){
                         charge[c].aff();
-                    }
                 }
-                
-                for(int i = 0; i < nbPLignes; i++)
-                {
-                    pLigne[i].champ(charge,nbCharges);
-                }
-                
-                
-                /*
-                //Draw Field Lines
-                for(int i = 0; i < nbPLignes; i++)
-                {
-                   // if ((charge[0].distance(pLigne[i]) < touchedDist) || (charge[1].distance(pLigne[i]) < touchedDist))
-                    {
-                        lineTouched = true;
-                        //set Line Color to be PINK
-                        lineColor.r=198;
-                        lineColor.g=199;
-                        lineColor.b=0;
-                        lineColor.a=(charge[0].distance(pLigne[i])/100.0)*25;
-                        pLigne[i].champ(charge,nbCharges);
-                    }
-                    
-                    pLigne[i].champ(charge,nbCharges);
-                    lineTouched=false;
-                    //set Line Color to be WHITE
-                    lineColor.r=255;
-                    lineColor.g=255;
-                    lineColor.b=255;
-                    lineColor.a=255;
-                }
-                 
-                */
             }
+            
+            //Draw the Magic
+            drawEFieldLines();
+                
 		}
-        
-//****************************************************************************
-//    Theremin Position Calibration
-//
-//    If in Calibration Mode, then Detect Markers and move charges accordingly
-//****************************************************************************
-        
-        if (isCalibrating)
-        {
-            
-        // Draw Threshold image and allow user to adjust for lighting conditions
-        ofSetHexColor(0x555555);
-        grayThres.mirror(false,true);
-        grayThres.draw(0, 0);
-            
-        // Display Marker Data nad instruction for calibration.
-        ofSetHexColor(0xff0000);  
-        ofDrawBitmapString(ofToString(artk.getNumDetectedMarkers()) + " marker(s) found", 10, 20);
-        ofDrawBitmapString("Threshold: " + ofToString(threshold), 10, 30);
-            ofDrawBitmapString("Use the Up/Down keys to adjust the threshold until both markers are visible.", 10, 40); 
-        ofDrawBitmapString("blue circles will apear over the markers when it's good.", 10, 50);
-        ofDrawBitmapString("Press the 'c' key when done.", 10,60);
-        ofDrawBitmapString("Press the 'd' key to show more debug info.", 10,70);    
-        
-        // See if marker ID '0' was detected
-        // and draw a circle in the center with the ID number.
-        int myIndex = artk.getMarkerIndex(0);
-        ofPoint center;
-            int depth;
-        if(myIndex >= 0) {	
-            //Get the center of Marker '0'
-            center = artk.getDetectedMarkerCenter(myIndex);
-            
-            //Draw location
-            ofSetHexColor(0x000055);
-            ofCircle(width-center.x,center.y,30);
-            ofSetHexColor(0x00ff00);
-            ofDrawBitmapString("0",width-center.x,center.y,10);
-            depth = recordDepth.getPixelDepth(width-center.x,center.y);
-            ofDrawBitmapString(ofToString(depth),width-center.x,center.y+20,10);
-            ofDrawBitmapString(ofToString(center.x),width-center.x,center.y+30,10);
-            ofDrawBitmapString(ofToString(center.y),width-center.x,center.y+40,10);
-            
-            //Store Position
-            marker0.set(center.x,center.y,depth);
-            
-            //Theremin volume
-            charge[2].set(width-marker0.x,marker0.y,0,-1000);
-            charge[3].set(width-marker0.x,marker0.y+10,0,-1000.0);
-
-
-        }
-        
-        // See if marker ID '1' was detected
-        // and draw a circle in the center with the ID number.
-        myIndex = artk.getMarkerIndex(1);
-        if(myIndex >= 0) {	
-            
-            //Get the center of Marker '1'
-            center = artk.getDetectedMarkerCenter(myIndex);
-            
-            //Draw Location
-            ofSetHexColor(0x000055);
-            ofCircle(width-center.x,center.y,30);
-            ofSetHexColor(0x00ff00);
-            ofDrawBitmapString("1",width-center.x,center.y,10);
-            depth = recordDepth.getPixelDepth(width-center.x,center.y);
-            ofDrawBitmapString(ofToString(depth),width-center.x,center.y+20,10);
-            ofDrawBitmapString(ofToString(center.x),width-center.x,center.y+30,10);
-            ofDrawBitmapString(ofToString(center.y),width-center.x,center.y+40,10);
-            
-            //Store Position
-            marker1.set(center.x,center.y,depth);
-            //Theremin pitch
-            charge[4].set(width-marker1.x,marker1.y,0,-1000.0);
-            charge[5].set(width-marker1.x,marker1.y+10,0,-1000.0);
-        
-        }
-            
-            //Calculate Distance (pixels) Between Markers
-            ofVec2f temp0;
-            temp0.set(marker0.x, marker0.y);
-            ofVec2f temp1;
-            temp1.set(marker1.x,marker1.y);
-            
-            ofVec2f temp2 = temp0 - temp1;
-            
-            ofDrawBitmapString(ofToString(temp2.x)+ " " + ofToString(temp2.y), width - marker0.x, marker0.y+50);
-            
-        }
-
-	}
+    }
     
 ofPopMatrix();    
     
-//*******************************
-//
 // On Screen Debugging and Status
-//
-//*******************************
-    
-    
+//--------------------------------------------------------------
 if(isDebug){
     
 	ofSetColor(255, 255, 0);
@@ -438,24 +272,208 @@ if(isDebug){
 	<< "  FPS   : " << ofToString(ofGetFrameRate());
     
 	ofDrawBitmapString(guiMsg.str(), 10, 340);
-    
-    
-   // ofTranslate(-ofGetWidth()/4,-ofGetHeight()/4,0);
 }
 }
 
-void testApp:: drawMasks() {
-	glPushMatrix();
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
-	allUserMasks.draw(640, 0, 640, 480);
-	glDisable(GL_BLEND);
-    glPopMatrix();
-	user1Mask.draw(320, 480, 320, 240);
-	user2Mask.draw(640, 480, 320, 240);
+/*
+int testApp::autoFindThreshold(){
+    int threshold=70;
+    int start=-1;
+    int countRange=0;
+    
+    for (int i=0;i++;i<=255){
 	
+        artk.setThreshold(i);
+        if(artk.getMarkerIndex(0)>=0 && artk.getMarkerIndex(1)>=0){
+            if(start<0) start=i;
+            else countRange++;
+        }
+    }
+    
+    if(start>=0)
+        threshold=start+countRange/2;
+    
+    return threshold;
+}
+ */
+
+
+// Make Some E Field Lines
+//--------------------------------------------------------------
+void testApp::drawEFieldLines(){
+
+for(int i = 0; i < nbPLignes; i++)
+{
+    pLigne[i].champ(charge,nbCharges);
 }
 
+/*
+ //Draw Field Lines
+ for(int i = 0; i < nbPLignes; i++)
+ {
+ // if ((charge[0].distance(pLigne[i]) < touchedDist) || (charge[1].distance(pLigne[i]) < touchedDist))
+ {
+ lineTouched = true;
+ //set Line Color to be PINK
+ lineColor.r=198;
+ lineColor.g=199;
+ lineColor.b=0;
+ lineColor.a=(charge[0].distance(pLigne[i])/100.0)*25;
+ pLigne[i].champ(charge,nbCharges);
+ }
+ 
+ pLigne[i].champ(charge,nbCharges);
+ lineTouched=false;
+ //set Line Color to be WHITE
+ lineColor.r=255;
+ lineColor.g=255;
+ lineColor.b=255;
+ lineColor.a=255;
+ }
+ 
+ */
+}
+
+//--------------------------------------------------------------
+void testApp::trackClosestUser() {
+    ofxTrackedUser* tracked;
+    int closestUser = -1;
+    float closestUserZ = -1;
+    
+    for(int i = 0; i < recordUser.getNumberOfTrackedUsers() ; i++){  
+        tracked = recordUser.getTrackedUser(i+1);
+        
+        if( recordUser.getXnUserGenerator().GetSkeletonCap().IsTracking(tracked->id)){  
+            if(tracked->neck.found){
+                if ( closestUser > 0){
+                    if ( tracked->neck.position[0].Z < closestUserZ){
+                        closestUserZ = tracked->neck.position[0].Z;
+                        closestUser = i+1;
+                    }
+                }
+                else {
+                    closestUserZ = tracked->neck.position[0].Z;
+                    closestUser = i+1;
+                }
+            }
+            
+        }
+    }
+    
+    
+    if (closestUser > 0 )
+    {
+        tracked = recordUser.getTrackedUser(closestUser);
+        if(tracked->left_lower_arm.found)
+        {
+            //Put Charges in your hands
+            charge[0].set(tracked->left_lower_arm.position[1].X,tracked->left_lower_arm.position[1].Y,0,1500);
+            //Draw Debug Hands
+            if (isDebug){
+                ofSetHexColor(0xffff77);
+                ofCircle(tracked->left_lower_arm.position[1].X,tracked->left_lower_arm.position[1].Y,10);
+            }
+        }
+        if(tracked->right_lower_arm.found)
+        {
+            //Put Charges in your hands
+            charge[1].set(tracked->right_lower_arm.position[1].X,tracked->right_lower_arm.position[1].Y,0,1500);
+            //Draw Debug Hands
+            if(isDebug){
+                ofSetHexColor(0xffff77);
+                ofCircle(tracked->right_lower_arm.position[1].X,tracked->right_lower_arm.position[1].Y,10);
+            }
+        }
+    }    
+}
+
+//----------------------------------------------------------------------------
+//    Theremin Position Calibration
+//
+//    If in Calibration Mode, then Detect Markers and move charges accordingly
+//----------------------------------------------------------------------------
+void testApp::calibrateThereminPosition(){
+        // Draw Threshold image and allow user to adjust for lighting conditions
+        ofSetHexColor(0x555555);
+        grayThres.mirror(false,true);
+        grayThres.draw(0, 0);
+        
+        // Display Marker Data nad instruction for calibration.
+        ofSetHexColor(0xff0000);  
+        ofDrawBitmapString(ofToString(artk.getNumDetectedMarkers()) + " marker(s) found", 10, 20);
+        ofDrawBitmapString("Threshold: " + ofToString(threshold), 10, 30);
+        ofDrawBitmapString("Use the Up/Down keys to adjust the threshold until both markers are visible.", 10, 40); 
+        ofDrawBitmapString("blue circles will apear over the markers when it's good.", 10, 50);
+        ofDrawBitmapString("Press the 'c' key when done.", 10,60);
+        ofDrawBitmapString("Press the 'd' key to show more debug info.", 10,70);    
+        
+        // See if marker ID '0' was detected
+        // and draw a circle in the center with the ID number.
+        int myIndex = artk.getMarkerIndex(0);
+        ofPoint center;
+        int depth;
+        if(myIndex >= 0) {	
+            //Get the center of Marker '0'
+            center = artk.getDetectedMarkerCenter(myIndex);
+            
+            //Draw location
+            ofSetHexColor(0x000055);
+            ofCircle(width-center.x,center.y,30);
+            ofSetHexColor(0x00ff00);
+            ofDrawBitmapString("0",width-center.x,center.y,10);
+            depth = recordDepth.getPixelDepth(width-center.x,center.y);
+            ofDrawBitmapString(ofToString(depth),width-center.x,center.y+20,10);
+            ofDrawBitmapString(ofToString(center.x),width-center.x,center.y+30,10);
+            ofDrawBitmapString(ofToString(center.y),width-center.x,center.y+40,10);
+            
+            //Store Position
+            marker0.set(center.x,center.y,depth);
+            
+            //Theremin volume
+            charge[2].set(width-marker0.x,marker0.y,0,-1000);
+            charge[3].set(width-marker0.x,marker0.y+10,0,-1000.0);
+            
+            
+        }
+        
+        // See if marker ID '1' was detected
+        // and draw a circle in the center with the ID number.
+        myIndex = artk.getMarkerIndex(1);
+        if(myIndex >= 0) {	
+            
+            //Get the center of Marker '1'
+            center = artk.getDetectedMarkerCenter(myIndex);
+            
+            //Draw Location
+            ofSetHexColor(0x000055);
+            ofCircle(width-center.x,center.y,30);
+            ofSetHexColor(0x00ff00);
+            ofDrawBitmapString("1",width-center.x,center.y,10);
+            depth = recordDepth.getPixelDepth(width-center.x,center.y);
+            ofDrawBitmapString(ofToString(depth),width-center.x,center.y+20,10);
+            ofDrawBitmapString(ofToString(center.x),width-center.x,center.y+30,10);
+            ofDrawBitmapString(ofToString(center.y),width-center.x,center.y+40,10);
+            
+            //Store Position
+            marker1.set(center.x,center.y,depth);
+            //Theremin pitch
+            charge[4].set(width-marker1.x,marker1.y,0,-1000.0);
+            charge[5].set(width-marker1.x,marker1.y+10,0,-1000.0);
+            
+        }
+        
+        //Calculate Distance (pixels) Between Markers
+        ofVec2f temp0;
+        temp0.set(marker0.x, marker0.y);
+        ofVec2f temp1;
+        temp1.set(marker1.x,marker1.y);
+        
+        ofVec2f temp2 = temp0 - temp1;
+        
+    ofDrawBitmapString(ofToString(temp2.x)+ " " + ofToString(temp2.y), width - marker0.x, marker0.y+50);
+}
+
+//--------------------------------------------------------------
 void testApp::drawPointCloud(ofxUserGenerator * user_generator, int userID) {
 
 	glPushMatrix();

@@ -19,12 +19,12 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "src/testApp.cpp"
-         timestampString = "358043213.598742"
+         timestampString = "359254552.17956"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "367"
-         endingLineNumber = "367"
-         landmarkName = "testApp::draw()"
+         startingLineNumber = "463"
+         endingLineNumber = "463"
+         landmarkName = "testApp::calibrateThereminPosition()"
          landmarkType = "5">
       </FileBreakpoint>
    </FileBreakpoints>
