@@ -6,17 +6,26 @@
 //E Field Quality/Efficiency
 extern float intensPas = 10; // Distance between segments
 extern float dMin2 = 100;// Last Mile Drawing close to Charges
-extern float numFieldIterations = 1000; // How many cycles do we draw for
+extern float numFieldIterations = 1600; // How many cycles do we draw for
 
 //E Field Line Style
-extern float lineWeight = 2;
+extern float lineWeight = 1.8;
+extern float lineAlpha = 86;
 extern float fieldScale = 3;
 float touchedDist = 0;
 bool lineTouched = false;
 ofColor lineColor;
 
+//Theremin Markers
+const extern float realMarkerDist=360; //real distance between markers in mm.
+
 //--------------------------------------------------------------
 void testApp::setup() {
+    
+    //ofSetDataPathRoot("./");
+
+    //glEnable (GL_BLEND);
+    //glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     ofEnableAlphaBlending();
     
@@ -35,7 +44,7 @@ void testApp::setup() {
 	nearThreshold = 500;
 	farThreshold  = 1000;
 
-	filterFactor = 0.1f;
+	filterFactor = 0.5f;
 
 	setupRecording();
 
@@ -43,14 +52,12 @@ void testApp::setup() {
 	grayImage.allocate(width, height);
 	grayThres.allocate(width, height);
 	
-	// Set the threshold
+	// This uses the default camera calibration and marker file
+	artk.setup(width, height);
+
 	// ARTK+ does the thresholding for us
-	// We also do it in OpenCV so we can see what it looks like for debugging
-	threshold = 70;
-    artk.activateAutoThreshold(false);
-	artk.setThreshold(threshold);
-    
-    //artk.activateAutoThreshold(true);
+    threshold=70;
+    artk.activateAutoThreshold(true);
     
     //SETUP EFIELD AND CHARGES
 	//------------------------
@@ -61,18 +68,17 @@ void testApp::setup() {
 	distZ = 100;
 	
 	//set Line Color to be WHITE
-	lineColor.r=255;
+	lineColor.r=200;
 	lineColor.g=255;
-	lineColor.b=255;
-	lineColor.a=255;
-	
-	
+	lineColor.b=211;
+	lineColor.a=86;
+    
+
 	//Setup Charges
     
     //Hands
 	charge[0].set(width/2,height/2,0,1000.0);
 	charge[1].set(width/2,height/2,0.0,1000.0);
-	
 
 	//ground
 	charge[6].set(0,-1000,0,400.0);
@@ -152,8 +158,6 @@ void testApp::update(){
 			user1Mask.setFromPixels(recordUser.getUserPixels(1), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
 			user2Mask.setFromPixels(recordUser.getUserPixels(2), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
 		}
-        
-        
         
         //colorImage.setFromPixels(recordImage.getPixels(), width, height);
 		colorImage.setFromPixels(recordImage.getPixels(), recordUser.getWidth(), recordUser.getHeight());
@@ -269,69 +273,20 @@ if(isDebug){
 	<< "  5 / T : Line Color,                    RED component : " << ofToString(r) << endl
 	<< "  6 / Y : Line Color,                  GREEN component : " << ofToString(g) << endl
 	<< "  7 / U : Line Color,                   BLUE component : " << ofToString(b) << endl
+    << "  8 / I : Line Alpha,                  ALPHA component : " << ofToString(lineAlpha) << endl
 	<< "  FPS   : " << ofToString(ofGetFrameRate());
     
 	ofDrawBitmapString(guiMsg.str(), 10, 340);
 }
 }
 
-/*
-int testApp::autoFindThreshold(){
-    int threshold=70;
-    int start=-1;
-    int countRange=0;
-    
-    for (int i=0;i++;i<=255){
-	
-        artk.setThreshold(i);
-        if(artk.getMarkerIndex(0)>=0 && artk.getMarkerIndex(1)>=0){
-            if(start<0) start=i;
-            else countRange++;
-        }
-    }
-    
-    if(start>=0)
-        threshold=start+countRange/2;
-    
-    return threshold;
-}
- */
-
-
-// Make Some E Field Lines
-//--------------------------------------------------------------
 void testApp::drawEFieldLines(){
-
-for(int i = 0; i < nbPLignes; i++)
-{
-    pLigne[i].champ(charge,nbCharges);
-}
-
-/*
- //Draw Field Lines
- for(int i = 0; i < nbPLignes; i++)
- {
- // if ((charge[0].distance(pLigne[i]) < touchedDist) || (charge[1].distance(pLigne[i]) < touchedDist))
- {
- lineTouched = true;
- //set Line Color to be PINK
- lineColor.r=198;
- lineColor.g=199;
- lineColor.b=0;
- lineColor.a=(charge[0].distance(pLigne[i])/100.0)*25;
- pLigne[i].champ(charge,nbCharges);
- }
- 
- pLigne[i].champ(charge,nbCharges);
- lineTouched=false;
- //set Line Color to be WHITE
- lineColor.r=255;
- lineColor.g=255;
- lineColor.b=255;
- lineColor.a=255;
- }
- 
- */
+    //Draw Field Lines
+    for(int i = 0; i < nbPLignes; i++)  {
+        //lineColor.a=(charge[0].distance(pLigne[i])/100.0)*25;
+        
+        pLigne[i].champ(charge,nbCharges);
+    }
 }
 
 //--------------------------------------------------------------
@@ -423,17 +378,9 @@ void testApp::calibrateThereminPosition(){
             ofDrawBitmapString("0",width-center.x,center.y,10);
             depth = recordDepth.getPixelDepth(width-center.x,center.y);
             ofDrawBitmapString(ofToString(depth),width-center.x,center.y+20,10);
-            ofDrawBitmapString(ofToString(center.x),width-center.x,center.y+30,10);
-            ofDrawBitmapString(ofToString(center.y),width-center.x,center.y+40,10);
             
             //Store Position
             marker0.set(center.x,center.y,depth);
-            
-            //Theremin volume
-            charge[2].set(width-marker0.x,marker0.y,0,-1000);
-            charge[3].set(width-marker0.x,marker0.y+10,0,-1000.0);
-            
-            
         }
         
         // See if marker ID '1' was detected
@@ -451,26 +398,41 @@ void testApp::calibrateThereminPosition(){
             ofDrawBitmapString("1",width-center.x,center.y,10);
             depth = recordDepth.getPixelDepth(width-center.x,center.y);
             ofDrawBitmapString(ofToString(depth),width-center.x,center.y+20,10);
-            ofDrawBitmapString(ofToString(center.x),width-center.x,center.y+30,10);
-            ofDrawBitmapString(ofToString(center.y),width-center.x,center.y+40,10);
             
             //Store Position
             marker1.set(center.x,center.y,depth);
-            //Theremin pitch
-            charge[4].set(width-marker1.x,marker1.y,0,-1000.0);
-            charge[5].set(width-marker1.x,marker1.y+10,0,-1000.0);
-            
         }
-        
+      
         //Calculate Distance (pixels) Between Markers
         ofVec2f temp0;
         temp0.set(marker0.x, marker0.y);
         ofVec2f temp1;
         temp1.set(marker1.x,marker1.y);
-        
         ofVec2f temp2 = temp0 - temp1;
         
-    ofDrawBitmapString(ofToString(temp2.x)+ " " + ofToString(temp2.y), width - marker0.x, marker0.y+50);
+    float distFactor = abs(temp0.distance(temp1))/realMarkerDist;
+    
+    //Theremin volume
+    charge[2].set(width-marker0.x-distFactor*75,marker0.y-distFactor*50,0,-1000);
+    charge[3].set(width-marker0.x-distFactor*200,marker0.y-distFactor*50,0,-1000.0);
+    
+    //Theremin pitch
+    charge[4].set(width-marker1.x+distFactor*50,marker1.y-distFactor*485,0,-1000.0);
+    charge[5].set(width-marker1.x+distFactor*50,marker1.y-distFactor*100,0,-1000.0);
+  
+}
+
+
+void testApp:: drawMasks() {
+	glPushMatrix();
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
+	allUserMasks.draw(640, 0, 640, 480);
+	glDisable(GL_BLEND);
+    glPopMatrix();
+	user1Mask.draw(320, 480, 320, 240);
+	user2Mask.draw(640, 480, 320, 240);
+	
 }
 
 //--------------------------------------------------------------
@@ -618,6 +580,13 @@ void testApp::keyPressed(int key){
         case 'u':
         case 'U':
             lineColor.set(lineColor.r,lineColor.g,lineColor.b-1);
+            break;
+        case '8':
+            lineAlpha++;
+            break;
+        case 'i':
+        case 'I':
+            lineAlpha--;
             break;
 		default:
 			break;

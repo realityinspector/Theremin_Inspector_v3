@@ -15,6 +15,7 @@ extern const float numFieldIterations;
 extern const float dMin2;
 extern const float lineWeight;
 extern ofColor lineColor;
+extern const float lineAlpha;
 extern bool lineTouched;
 
 void Charge::set(float _x, float _y, float _z, float _magn){
@@ -80,15 +81,11 @@ void Charge::champ(Charge _charge[], int _nbCharges)
 			
 			if (!fs.trapped) 
 			{
-				
-				
-			
-            
-            float alpher = 255;
-            
+
+			//float alpher =255-sqrt(fs.shift.x*fs.shift.x + fs.shift.y*fs.shift.y + fs.shift.z*fs.shift.z)*2;
 			/*
-			float alpher =255-sqrt(fs.shift.x*fs.shift.x + fs.shift.y*fs.shift.y + fs.shift.z*fs.shift.z)*2;
-			
+            float alpher = 255;
+                
 			if ( mobile.getNorm() >250)
 			{
 				alpher = 255-(mobile.getNorm()-250)*3;
@@ -107,7 +104,8 @@ void Charge::champ(Charge _charge[], int _nbCharges)
 				lineColor.a = alpher;
 			} else { lineColor.a = alpher/7;}
 			*/
-			
+            
+            lineColor.a = lineAlpha*((numFieldIterations-i)/numFieldIterations);
 			
 			//shift.setNorm(intensPas);
 			fs.shift.x *= intensPas/(sqrt(x*x + y*y + z*z));
