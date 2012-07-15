@@ -53,9 +53,7 @@ REQUIRED ADDONS:
 ofxOpenNI 
 ---------
 - You'll need a Microsoft Kinect.
-- https://github.com/gameoverhack/ofxOpenNI.git 
-- using master branch from 09/01/2012
-- OpenNI 1.5.2.7 unstable, NITE 1.5.2.7 , SensorKinect (Avin) 5.1.0.25) for Mac portable dylibs.
+- https://github.com/roymacdonald/ofxOpenNI
 - follow the install procedure in the readme.
 
 ofxARtoolkitPlus
